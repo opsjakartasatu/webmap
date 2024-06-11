@@ -45,8 +45,9 @@
             "esri/widgets/Editor", 
             "esri/core/reactiveUtils",
             "esri/widgets/Expand",
-            "esri/widgets/Locate"
-        ], function(Map, MapView, FeatureLayer, Editor, reactiveUtils, Expand, Locate) {
+            "esri/widgets/Locate",
+            "esri/widgets/Search"
+        ], function(Map, MapView, FeatureLayer, Editor, reactiveUtils, Expand, Locate, Search) {
             
             // Basemap
             const map = new Map({
@@ -146,8 +147,17 @@
                 expanded: false // Widget tidak aktif saat dimuat
                 });
 
-                view.ui.add(expandWidget, "top-left");                
+                view.ui.add(expandWidget, "top-left");
+                
+                const searchWidget = new Search({
+                    view: view
                 });
+
+                // Add the search widget to the top right corner of the view
+                view.ui.add(searchWidget, {
+                position: "top-right"
+                });
+        });
     </script>
 </head>
 <body>
