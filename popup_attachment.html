@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>ArcGIS Maps SDK for JavaScript Tutorials: Display a map</title>
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .popup-table th,
+        .popup-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .popup-table th {
+            background-color: #f2f2f2;
+            text-align: left;
+        }
+        .attachment-preview {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .attachment-preview li {
+            margin: 5px 0;
+        }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.29/"></script>
+    <script>
+        require(["esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer"], function(Map, MapView, FeatureLayer) {
+            // Basemap
+            const map = new Map({
+                basemap: "topo-vector"
+            });
+
+            const view = new MapView({
+                map: map,
+                center: [106.827464, -6.175371], // Longitude, latitude
+                zoom: 16,
+                container: "viewDiv"
+            });
+
+            const editThisAction = {
+                title: "Edit",
+                id: "edit-this",
+                className: "esri-icon-edit"
+            };
+
+            const layer = new FeatureLayer({
+                url: "https://tataruang.jakarta.go.id/server/rest/services/Tes_Data_Reklame/FeatureServer/0",
+                outFields: ["*"],
+                popupTemplate: {
+                    title: "POP UP",
+                    content: getPopupContent,
+                    actions: [editThisAction]
+                }
+            });
+            map.add(layer);
+
+            function getPopupContent(feature) {
+                const attributes = feature.graphic.attributes;
+                let content = "<table class='popup-table'>";
+
+                content += "<b>Attributes:</b>";
+                content += "<tr><td>Lingkup</td><td>" + attributes.LINGKUP + "</td></tr>";
+                content += "<tr><td>Lokasi</td><td>" + attributes.LOKASI + "</td></tr>";
+                content += "</table>";
+
+                return feature.graphic.layer.queryAttachments({ objectIds: [attributes[feature.graphic.layer.objectIdField]] })
+                    .then(function(attachmentInfos) {
+                        if (attachmentInfos && attachmentInfos[attributes[feature.graphic.layer.objectIdField]].length > 0) {
+                            content += "<br><b>Attachments:</b><ul class='attachment-preview'>";
+                            var attachments = attachmentInfos[attributes[feature.graphic.layer.objectIdField]];
+                            attachments.forEach(function(attachment) {
+                                content += `<li><a href="${attachment.url}" target="_blank">${attachment.name}</a></li>`;
+                            });
+                            content += "</ul>";
+                        }
+                        return content;
+                    })
+                    .catch(function(error) {
+                        console.error("Error fetching attachments: ", error);
+                        return content + "<b>No Attachments</b>";
+                    });
+            }
+        });
+    </script>
+</head>
+<body>
+    <div id="viewDiv"></div>
+</body>
+</html>
