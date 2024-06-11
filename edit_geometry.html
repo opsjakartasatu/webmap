@@ -44,14 +44,16 @@
             "esri/layers/FeatureLayer", 
             "esri/widgets/Editor", 
             "esri/core/reactiveUtils",
-            "esri/widgets/Expand"
-        ], function(Map, MapView, FeatureLayer, Editor, reactiveUtils, Expand) {
+            "esri/widgets/Expand",
+            "esri/widgets/Locate"
+        ], function(Map, MapView, FeatureLayer, Editor, reactiveUtils, Expand, Locate) {
             
             // Basemap
             const map = new Map({
                 basemap: "topo-vector"
             });
 
+            // Map View
             const view = new MapView({
                 map: map,
                 center: [106.827464, -6.175371], // Longitude, latitude
@@ -65,6 +67,7 @@
             //     className: "esri-icon-edit"
             // };
 
+            // Feature Layer
             const layer = new FeatureLayer({
                 url: "https://tataruang.jakarta.go.id/server/rest/services/Tes_Data_Reklame/FeatureServer/0",
                 outFields: ["*"],
@@ -76,6 +79,7 @@
             });
             map.add(layer);
 
+            // Pop Up with  Attachments
             function getPopupContent(feature) {
                 const attributes = feature.graphic.attributes;
                 let content = "<table class='popup-table'>";
@@ -103,6 +107,7 @@
                     });
             }
 
+            // Editor
             const editor = new Editor({
                 view: view,
                 layerInfos: [{
@@ -124,14 +129,25 @@
                     }]
                 });
 
+                // Widget Locate
+                const locatebtn = new Locate({
+                    view: view
+                });
+                
+                view.ui.add(locatebtn, {
+                    position: "top-left"
+                });
+
+                // Widget Editor
                 const expandWidget = new Expand({
                 view: view,
                 content: editor,
                 expandTooltip: "Toggle Editor", // optional, text that shows in the tooltip
                 expanded: false // Widget tidak aktif saat dimuat
                 });
-            view.ui.add(expandWidget, "top-left");
-        });
+
+                view.ui.add(expandWidget, "top-left");                
+                });
     </script>
 </head>
 <body>
