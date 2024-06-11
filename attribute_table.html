@@ -1,230 +1,233 @@
-<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>TableList widget | Sample | ArcGIS Maps SDK for JavaScript 4.29</title>
 
-    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
-    <script src="https://js.arcgis.com/4.29/"></script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no" />
+  <title>FeatureTable with popup interaction | Sample | ArcGIS Maps SDK for JavaScript 4.29</title>
 
-    <style>
-      html,
-      body {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-      }
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.29/"></script>
 
-      #viewDiv {
-        flex: 1;
-        width: 100%;
-      }
+  <style>
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
 
-      #appContainer {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        width: 100%;
-      }
+    .esri-popup--is-docked-top-right .esri-popup__main-container {
+      max-height: 100%;
+    }
 
-      #viewDiv {
-        flex: 1;
-        width: 100%;
-      }
+    #appContainer {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
 
-      .container {
-        display: flex;
-        flex: 1;
-        width: 100%;
-      }
+    #viewDiv {
+      flex: 1;
+      width: 100%;
+    }
 
-      .hidden {
-        display: none;
-      }
-    </style>
+    .container {
+      display: flex;
+      flex: 1;
+      width: 100%;
+    }
 
-    <script type="text/javascript">
-      require([
-        "esri/WebMap",
-        "esri/views/MapView",
-        "esri/widgets/TableList",
-        "esri/widgets/FeatureTable",
-        "esri/layers/Layer",
-        "esri/widgets/Legend",
-        "esri/widgets/Expand"
-      ], function (WebMap, MapView, TableList, FeatureTable, Layer, Legend, Expand) {
-        let featureTable, tableDiv;
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 45px;
+      height: 22px;
+      vertical-align: middle;
+    }
 
-        // Create webmap from portal item
-        // The webmap contains a table layer so this table can be listed in the TableList widget
-        const webmap = new WebMap({
-          portalItem: {
-            id: "62f9d6aabd024931a940c5f00d74d0ac"
-          }
-        });
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
 
-        const view = new MapView({
-          container: "viewDiv",
-          map: webmap
-        });
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      -webkit-transition: 0.4s;
+      transition: 0.4s;
+    }
 
-        view.when(function () {
-          // Get references to div elements for toggling table visibility
-          const appContainer = document.getElementById("appContainer");
-          const tableContainer = document.getElementById("tableContainer");
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 1px;
+      background-color: white;
+      -webkit-transition: 0.4s;
+      transition: 0.4s;
+    }
 
-          // Get the first layer in the webmap
-          const featureLayer = webmap.layers.getItemAt(0);
-          featureLayer.outFields = ["*"];
+    input:checked+.slider {
+      background-color: #2196f3;
+    }
 
-          // This layer has a type of "table", ie. featureLayer.isTable = true.
-          // It is added dynamically in addition to the table already stored within the webmap.
-          Layer.fromPortalItem({
-            portalItem: {
-              // autocasts new PortalItem()
-              id: "6aa49be79248400ebd28f1d0c6af3f9f" // loads a feature layer table from AGO portal item
-            }
-          }).then(function (layer) {
-            layer.load().then(function () {
-              // Must first load the layer and then check if it's a table
-              if (layer.isTable) {
-                webmap.tables.add(layer); // add this table to the map's tables collection
-              }
-            });
-          });
+    input:focus+.slider {
+      box-shadow: 0 0 1px #2196f3;
+    }
 
-          // TableList logic
+    input:checked+.slider:before {
+      -webkit-transform: translateX(20px);
+      -ms-transform: translateX(20px);
+      transform: translateX(20px);
+    }
 
-          const tableList = new TableList({
-            // Two tables should display, the first one is stored within the webmap,
-            //ie. Chicago public health statistics. The other is dynamically loaded
-            //from the portal item, ie. Chicago Covid daily cases deaths and hospitalizations.
-            map: webmap, // get access to the map which has the collection of tables
-            selectionMode: "single",
-            listItemCreatedFunction: createActions // call createActions function to set ActionToggle and ActionButton
-          });
+    /* Rounded sliders */
 
-          function createActions(event) {
-            let item = event.item;
-            item.actionsSections = [
-              [
-                {
-                  // This allows the user to toggle the table on/off within the FeatureTable widget
-                  title: "Show table",
-                  className: "esri-icon-table",
-                  id: "table",
-                  type: "toggle"
-                },
-                {
-                  // This allows the user to access the item's layer information page
-                  title: "Layer information",
-                  className: "esri-icon-description",
-                  id: "information"
-                }
-              ]
-            ];
-          }
+    .slider.round {
+      border-radius: 20px;
+    }
 
-          const legendExpand = new Expand({
-            view: view,
-            content: new Legend({
-              view: view,
-              layerInfos: [
-                {
-                  layer: featureLayer,
-                  title: "Chicago Covid cases"
-                }
-              ]
-            }),
-            container: document.createElement("div"),
-            expandIcon: "list-bullet",
-            group: "top-right"
-          });
+    .slider.round:before {
+      border-radius: 50%;
+    }
 
-          const tableExpand = new Expand({
-            view: view,
-            content: tableList,
-            container: document.createElement("div"),
-            expandIcon: "table",
-            group: "top-right"
-          });
+    .labelText {
+      padding-left: 5px;
+      font-size: 15px;
+    }
 
-          view.ui.add([legendExpand, tableExpand], "top-right");
+    #mainDiv {
+      padding: 8px;
+    }
+  </style>
 
-          // -------------------------
-          // Create the FeatureTable
-          // -------------------------
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/FeatureTable",
+      "esri/core/reactiveUtils"
+    ], function (Map, MapView, FeatureLayer, FeatureTable, reactiveUtils) {
+      let selectedFeature, url;
 
-          async function createTable(layer) {
-            const tableDiv = document.createElement("div");
-            tableContainer.appendChild(tableDiv);
-
-            featureTable = new FeatureTable({
-              view: view,
-              layer: layer,
-              container: tableDiv
-            });
-          }
-
-          tableList.on("trigger-action", function (event) {
-            const item = event.item;
-            // Capture the action id
-            const id = event.action.id;
-
-            if (id === "table") {
-              // Toggle the feature table widget based on the selected table,
-              // If the toggled on
-              if (event.action.value) {
-                // Check if the Feature Table is already created if so, don't recreate
-                if (featureTable) {
-                  // If the table is already created, make sure that the featuretable toggle reflects the correct layer.
-                  // If toggling on a different layer, create the featuretable for that layer and toggle on
-                  if (item.layer.title != featureTable.layer.title) {
-                    // destroy the featuretable and recreate with new tablediv
-                    featureTable.destroy();
-
-                    // Load the FeatureTable based on whatever is clicked
-                    createTable(item.layer).then(function () {
-                      toggleFeatureTable(true);
-                    });
-                  } else {
-                    // if the table is the same one stored in featureTable, i.e. toggling on/of the same table, no need to recreate.
-                    toggleFeatureTable(true);
-                  }
-
-                  // If the featuretable is not already created, create a new one and toggle it on
-                } else {
-                  // Create the table if not already created
-                  createTable(item.layer).then(function () {
-                    toggleFeatureTable(true);
-                  });
-                }
-              } else {
-                // Toggle the table off
-                toggleFeatureTable(false);
-              }
-              // If the information button is clicked, open the layer's url in a separate page
-            } else if (id === "information") {
-              window.open(item.layer.url);
-            }
-          });
-
-          // Toggle feature table on/off
-          function toggleFeatureTable(showTable) {
-            // Check if the table is displayed, if so, toggle off. If not, display.
-            showTable ? tableContainer.classList.remove("hidden") : tableContainer.classList.add("hidden");
-          }
-        });
+      const map = new Map({
+        basemap: "topo-vector"
       });
-    </script>
-  </head>
 
-  <body>
-    <div id="appContainer">
-      <div id="viewDiv"></div>
-      <div id="tableContainer" class="container hidden"></div>
+      const view = new MapView({
+        map: map,
+        center: [106.827464, -6.175371], // Longitude, latitude
+        zoom: 16,
+        container: "viewDiv"
+      });
+
+      const layer = new FeatureLayer({
+        url: "https://tataruang.jakarta.go.id/server/rest/services/Tes_Data_Reklame/FeatureServer/0",
+        //featurelayer.outFields: ["*"]
+        //popupTemplate: {
+        //title: "POP UP",
+        //content: getPopupContent,
+        //actions: [editThisAction]
+        //}
+      });
+
+      map.add(layer);
+
+      // Get references to div elements for toggling table visibility
+      const appContainer = document.getElementById("appContainer");
+      const tableContainer = document.getElementById("tableContainer");
+      const tableDiv = document.getElementById("tableDiv");
+
+      // Create FeatureTable
+      const featureTable = new FeatureTable({
+        view: view, // make sure to pass in view in order for selection to work
+        layer: layer,
+        tableTemplate: {
+          // autocasts to TableTemplate
+          columnTemplates: [
+            // takes an array of GroupColumnTemplate and FieldColumnTemplate
+            {
+              // autocasts to FieldColumnTemplate
+              type: "field",
+              fieldName: "LINGKUP",
+              label: "LINGKUP",
+              direction: "asc"
+            },
+            {
+              type: "field",
+              fieldName: "LOKASI",
+              label: "LOKASI"
+            }
+          ]
+        },
+        container: tableDiv
+      });
+
+      // Add toggle visibility slider
+      view.ui.add(document.getElementById("mainDiv"), "top-right");
+
+      // Get reference to div elements
+      const checkboxEle = document.getElementById("checkboxId");
+      const labelText = document.getElementById("labelText");
+
+      // Listen for when toggle is changed, call toggleFeatureTable function
+      checkboxEle.onchange = () => {
+        toggleFeatureTable();
+      };
+
+      function toggleFeatureTable() {
+        // Check if the table is displayed, if so, toggle off. If not, display.
+        if (!checkboxEle.checked) {
+          appContainer.removeChild(tableContainer);
+          labelText.innerHTML = "Show Feature Table";
+        } else {
+          appContainer.appendChild(tableContainer);
+          labelText.innerHTML = "Hide Feature Table";
+        }
+      }
+
+      // Watch for the popup's visible property. Once it is true, clear the current table selection and select the corresponding table row from the popup
+      // reactiveUtils.watch(
+      //   () => view.popup.viewModel?.active,
+      //   () => {
+      //     selectedFeature = view.popup.selectedFeature;
+      //     if (selectedFeature !== null && view.popup.visible !== false) {
+      //       featureTable.highlightIds.removeAll();
+      //       featureTable.highlightIds.add(view.popup.selectedFeature.attributes.OBJECTID);
+      //       id = selectedFeature.getObjectId();
+      //     }
+      //   }
+
+    });
+
+  </script>
+</head>
+
+<body>
+  <div id="appContainer">
+    <div id="viewDiv"></div>
+    <div id="tableContainer" class="container">
+      <div id="tableDiv"></div>
     </div>
-  </body>
+    <div id="mainDiv" class="esri-widget">
+      <label class="switch">
+        <input id="checkboxId" type="checkbox" checked="yes" />
+        <span class="slider round"></span>
+      </label>
+      <label class="labelText" id="labelText">Hide feature table</label>
+    </div>
+  </div>
+</body>
+
 </html>
