@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Web Map</title>
+    <script type="module" src="https://js.arcgis.com/calcite-components/2.5.1/calcite.esm.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/calcite-components/2.5.1/calcite.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.29/"></script>
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .popup-table th,
+        .popup-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        .popup-table th {
+            background-color: #f2f2f2;
+            text-align: left;
+        }
+
+        .attachment-preview {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .attachment-preview li {
+            margin: 5px 0;
+        }
+
+        .panel-side {
+            padding: 2px;
+            width: 390px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 60;
+        }
+
+        #resultsDiv {
+            overflow: auto;
+        }
+
+        /* Menyesuaikan gaya untuk memusatkan searchWidget di atas */
+        .esri-ui-top-right {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .esri-ui-top-right .esri-component {
+            margin: 0 auto;
+        }
+    </style>
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/widgets/Editor",
+            "esri/core/reactiveUtils",
+            "esri/widgets/Expand",
+            "esri/widgets/Locate",
+            "esri/widgets/Search"
+        ], function (Map, MapView, FeatureLayer, Editor, reactiveUtils, Expand, Locate, Search) {
+            (async function () {
+                // Basemap
+                const map = new Map({
+                    basemap: "topo-vector"
+                });
+
+                // Map View
+                const view = new MapView({
+                    map: map,
+                    center: [106.827464, -6.175371], // Longitude, latitude
+                    zoom: 16,
+                    container: "viewDiv"
+                });
+
+                // Query features with pagination
+                const listNode = document.getElementById("incomeList");
+
+                // Feature Layer
+                const layer = new FeatureLayer({
+                    url: "https://tataruang.jakarta.go.id/server/rest/services/Tes_Data_Reklame/FeatureServer/0",
+                    outFields: ["*"],
+                    popupTemplate: {
+                        title: "POP UP",
+                        content: getPopupContent
+                    },
+                    renderer: createRenderer()
+                });
+                map.add(layer);
+
+                // Query features with pagination
+                let graphics;
+                let start = 0;
+                let highlight;
+
+                // Get the number of all features from the service and use the count
+                // to set the number of pages in the calcite-pagination component
+                const featureCount = await layer.queryFeatureCount();
+                document.getElementById("tablePager").setAttribute("total-items", featureCount);
+
+                // Get the instance of the layerview representing the feature layer
+                const layerView = await view.whenLayerView(layer);
+
+                // Fetch the first set of features
+                queryPage(0);
+
+                // Fetch a page of features from the layer
+                function queryPage(page) {
+                    // Query for the page of features.
+                    // order the results by median income in descending order
+                    const query = {
+                        start: page,
+                        num: 5,
+                        outFields: ["*"],
+                        returnGeometry: true,
+                        orderByFields: ["LINGKUP"]
+                    };
+                    const promise = layer
+                        .queryFeatures(query)
+                        .then((featureSet) => convertFeatureSetToRows(featureSet, query));
+                }
+
+                // Convert the feature set to rows in the panel
+                function convertFeatureSetToRows(featureSet, query) {
+                    const incomeList = document.getElementById("incomeList");
+                    incomeList.innerHTML = "";
+
+                    graphics = featureSet.features;
+                    graphics.forEach((result, index) => {
+                        const attributes = result.attributes;
+                        const name = attributes.LINGKUP;
+                        const income = `Median Income: ${attributes.LOKASI}`;
+
+                        const item = document.createElement("calcite-pick-list-item");
+                        item.setAttribute("label", name);
+                        item.setAttribute("value", index);
+                        item.setAttribute("description", income);
+                        item.addEventListener("click", onCountyClickHandler);
+                        document.getElementById("incomeList").appendChild(item);
+                    });
+
+                    if (highlight) {
+                        highlight.remove();
+                    }
+                    highlight = layerView.highlight(featureSet.features);
+                }
+
+                // Handle pagination change
+                document.getElementById("tablePager").addEventListener("calcitePaginationChange", (event) => {
+                    let page;
+                    if (event.target.startItem === 1) {
+                        page = 0;
+                    } else {
+                        page = event.target.startItem - 1;
+                    }
+                    queryPage(page);
+
+                    // Reset map view
+                    view.goTo({
+                        center: [106.827464, -6.175371], // Adjust as needed
+                        zoom: 16
+                    });
+
+                    if (view.popup.visible) {
+                        view.popup.visible = false;
+                    }
+                });
+
+                function onCountyClickHandler(event) {
+                    const target = event.target;
+                    const resultId = target.getAttribute("value");
+
+                    // get the graphic corresponding to the clicked item
+                    const result = resultId && graphics && graphics[parseInt(resultId, 10)];
+
+                    if (result) {
+                        view
+                            .goTo({
+                                target: result,
+                                zoom: 18
+                            })
+                            .then(() => {
+                                view.popup.open({
+                                    features: [result],
+                                    location: result.geometry.centroid
+                                });
+                            })
+                            .catch((error) => {
+                                console.error("Error navigating to selected feature:", error);
+                            });
+                    }
+                }
+
+                // Renderer for the feature layer
+                function createRenderer() {
+                    return (renderer = {
+                        type: "simple",
+                        symbol: {
+                            type: "simple-marker",
+                            style: "circle",
+                            color: "rgba(138,43,226, 0.8)",
+                            size: "12px",  // ukuran marker
+                            outline: {
+                                color: [255, 255, 255, 0.8],  // warna garis tepi
+                                width: 0.5  // lebar garis tepi
+                            }
+                        }
+                    });
+                }
+
+                // Toggle result panel visibility
+                const resultPanel = document.getElementById("result-panel");
+                const toggleButton = document.getElementById("toggle-button");
+                view.ui.add(toggleButton, "top-left");
+
+                toggleButton.addEventListener("click", function () {
+                    if (resultPanel.clientWidth == 390) {
+                        resultPanel.style.width = "0px";
+                        tablePager.style.width = "0px";
+                        toggleButton.icon = "list";
+                        toggleButton.title = "Expand results panel";
+                    } else {
+                        resultPanel.style.width = "390px";
+                        tablePager.style.width = "390px";
+                        toggleButton.icon = "chevrons-left";
+                        toggleButton.title = "Collapse results panel";
+                    }
+                });
+
+                // Pop Up with Attachments
+                function getPopupContent(feature) {
+                    const attributes = feature.graphic.attributes;
+                    let content = "<table class='popup-table'>";
+                    content += "<b>Attributes:</b>";
+                    content += `<tr><td>Lingkup</td><td>${attributes.LINGKUP}</td></tr>`;
+                    content += `<tr><td>Lokasi</td><td>${attributes.LOKASI}</td></tr>`;
+                    content += "</table>";
+
+                    return feature.graphic.layer.queryAttachments({ objectIds: [attributes[feature.graphic.layer.objectIdField]] })
+                        .then(function (attachmentInfos) {
+                            if (attachmentInfos && attachmentInfos[attributes[feature.graphic.layer.objectIdField]].length > 0) {
+                                content += "<br><b>Attachments:</b><ul class='attachment-preview'>";
+                                var attachments = attachmentInfos[attributes[feature.graphic.layer.objectIdField]];
+                                attachments.forEach(function (attachment) {
+                                    content += `<li><a href="${attachment.url}" target="_blank">${attachment.name}</a></li>`;
+                                });
+                                content += "</ul>";
+                            }
+                            return content;
+                        })
+                        .catch(function (error) {
+                            console.error("Error fetching attachments: ", error);
+                            return content + "<b>No Attachments</b>";
+                        });
+                }
+
+                // Editor
+                const editor = new Editor({
+                    view: view,
+                    layerInfos: [{
+                        layer: layer,
+                        formTemplate: {
+                            elements: [
+                                {
+                                    type: "field",
+                                    fieldName: "LINGKUP",
+                                    label: "LINGKUP"
+                                },
+                                {
+                                    type: "field",
+                                    fieldName: "LOKASI",
+                                    label: "LOKASI"
+                                }
+                            ]
+                        }
+                    }]
+                });
+
+                // Widget Locate
+                const locatebtn = new Locate({
+                    view: view
+                });
+
+                view.ui.add(locatebtn, {
+                    position: "top-left"
+                });
+
+                // Widget Editor
+                const expandWidget = new Expand({
+                    view: view,
+                    content: editor,
+                    expandTooltip: "Toggle Editor",
+                    expanded: false
+                });
+
+                view.ui.add(expandWidget, "top-left");
+
+                // Widget Search
+                const searchWidget = new Search({
+                    view: view
+                });
+
+                // Add the search widget to the top right corner of the view
+                view.ui.add(searchWidget, {
+                    position: "top-right"
+                    // index: 0
+                });
+            })();
+        });
+    </script>
+</head>
+
+<body>
+    <div id="viewDiv"></div>
+    <calcite-action id="toggle-button" text="Toggle results panel" title="Collapse results panel" icon="chevrons-left"
+        scale="s">
+    </calcite-action>
+    <calcite-panel class="panel-side" id="result-panel">
+        <div slot="header-content" scale="s">
+            <h3 class="heading">Medium household income by counties from highest to lowest</h3>
+            <p>returns 20 counties at a time</p>
+            <p></p>
+        </div>
+
+        <calcite-panel id="resultsDiv">
+            <calcite-pick-list id="incomeList"></calcite-pick-list>
+        </calcite-panel>
+        <div slot="footer">
+            <calcite-pagination id="tablePager" start-item="1" page-size="5"></calcite-pagination>
+        </div>
+    </calcite-panel>
+</body>
+
+</html>
