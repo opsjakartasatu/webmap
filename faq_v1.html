@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAQ</title>
+    <style>
+      ody {
+        font-family: Arial, sans-serif;
+      }
+
+      .faq-container {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .faq-column {
+        flex: 1;
+        margin: 10px;
+      }
+
+      .faq-button {
+        display: block;
+        width: 100%;
+        background-color: #f1f1f1;
+        border: none;
+        text-align: left;
+        padding: 10px;
+        margin: 10px 0;
+        cursor: pointer;
+      }
+
+      .faq-button:hover {
+        background-color: #ddd;
+      }
+
+      .faq-dropdown {
+        display: none;
+        padding: 10px;
+        border: 1px solid #ddd;
+        margin-top: 5px;
+      }
+
+      h2 {
+        color: #333;
+      }
+
+      p {
+        color: #333;
+      }
+
+      .faq-icon {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 100px;
+        /* Atur lebar ikon sesuai kebutuhan Anda */
+        height: 80px;
+        /* Atur tinggi ikon sesuai kebutuhan Anda */
+      }
+    </style>
+  </head>
+
+  <body>
+    <img src="faq.png" alt="Frequently Asked Questions" class="faq-icon" />
+    <div class="faq-container">
+      <div class="faq-column">
+        <h2>Perencanaan</h2>
+        <button class="faq-button" onclick="toggleGroup('group1')">Ada kesalahan pada hasil perencanaan</button>
+        <div id="group1" class="faq-dropdown">
+          <p>Cek spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak</p>
+          <p>Hasil pekerjaan mengikuti ketentuan pada spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak</p>
+          <p>
+            Catatan: Untuk menghasilkan hasil pekerjaan/perencanaan yang berkualitas dibutuhkan spesifikasi teknis/kerangka acuan kerja yang berkualitas termasuk dokumen kontrak yang lengkap. Jika spesifikasi teknis/kerangka acuan kerja dan
+            dokumen kontrak sudah baik/lengkap namun hasil pekerjaan tidak sesuai, perlu dicek kompetensi dari konsultan perencana termasuk tenaga ahli. Koordinasi dengan asosiasi perusahaan dan profesi yang menerbitkan sertifikasi badan
+            usaha jasa konsultansi dan melakukan pengendalian pelayanan konsultansi/pelaksana pada jasa konstruksi
+          </p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group2')">Perbedaan antara gambar perencanaan dengan pelaksanaan di lapangan</button>
+        <div id="group2" class="faq-dropdown">
+          <p>Cek ketentuan pada kontrak, apakah konsultan perencana bertanggung jawab memperbaiki gambar jika ada perubahan pelaksanaan di lapangan</p>
+          <p>Jika tidak, perubahan di lapangan akan dituangkan pada gambar shop drawing dengan justifikasi teknis oleh kontraktor pelaksana</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group3')">Antara gambar dengan RAB (volume dan spesifikasi teknis) tidak sinkron</button>
+        <div id="group3" class="faq-dropdown">
+          <p>Cek spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak, apakah volume pada gambar lebih besar daripada RAB atau sebaliknya</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group4')">Gambar perencanaan kurang detail</button>
+        <div id="group4" class="faq-dropdown">
+          <p>Cek spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group5')">Konsultan perencana lambat menindaklanjuti perubahan pelaksanaan di lapangan</button>
+        <div id="group5" class="faq-dropdown">
+          <p>ketentuan pada dokumen kontrak, apakah konsultan perencana bertanggung jawab memperbaiki gambar jika ada perubahan pelaksanaan di lapangan</p>
+        </div>
+      </div>
+      <div class="faq-column">
+        <h2>Pelaksanaan</h2>
+        <button class="faq-button" onclick="toggleGroup('group6')">Hasil pekerjaan memerlukan perbaikan/penggantian agar sesuai dengan ketentuan dalam kontrak</button>
+        <div id="group6" class="faq-dropdown">
+          <p>Cek spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat</p>
+          <p>Cek justifikasi teknis, berapa persen hasil pekerjaan memerlukan perbaikan/penggantian agar sesuai dengan ketentuan dalam kontrak</p>
+          <p>Hasil pekerjaan mengikuti gambar perencanaan dan ketentuan pada spesifikasi teknis/kerangka acuan kerja dan dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat</p>
+          <p>Jika pada pelaksanaan pekerjaan ada perencanaan yang tidak dapat dilaksanakan, pelaksana membuat justifikasi teknis, dan perubahan tersebut dituangkan pada shop drawing</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group7')">Tenaga teknis (project manager, site manager, pelaksana) sering tidak hadir di lapangan</button>
+        <div id="group7" class="faq-dropdown">
+          <p>Cek dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat, apakah dokumen kontrak pelaksanaan mengatur jadwal kerja tenaga teknis di lapangan</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group8')">Pengiriman material sering terlambat sehingga pelaksanaan pekerjaan terhambat</button>
+        <div id="group8" class="faq-dropdown">
+          <p>Cek notulen rapat/reviu terhadap keterlambatan pekerjaan, apa solusi/tindak lanjut dari pelaksana dan PPK</p>
+          <p>Cek kualifikasi kontraktor pelaksana, apakah melakukan pengendalian biaya</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group9')">Alat pelindung diri dan alat pelindung kerja selama pelaksanaan pekerjaan tidak terpenuhi</button>
+        <div id="group9" class="faq-dropdown">
+          <p>Cek dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat, apakah PPK memberikan teguran kepada pelaksana</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group10')">Kebersihan area kerja kurang</button>
+        <div id="group10" class="faq-dropdown">
+          <p>Cek kontrak, syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat, apakah mencakup aspek lingkungan</p>
+          <p>Apakah PPK memberikan teguran kepada pelaksana</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group11')">Penyelesaian pekerjaan terlambat dari waktu yang ditetapkan dalam kontrak</button>
+        <div id="group11" class="faq-dropdown">
+          <p>Cek notulen rapat/reviu terhadap keterlambatan pekerjaan, apa solusi/tindak lanjut dari pelaksana dan PPK</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group12')">Progres pekerjaan tidak sesuai dengan jadwal pelaksanaan pekerjaan</button>
+        <div id="group12" class="faq-dropdown">
+          <p>Cek notulen rapat/reviu terhadap keterlambatan pekerjaan, apa solusi/tindak lanjut dari pelaksana dan PPK</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group13')">Tenaga administrasi tidak ada sehingga koordinasi terkait administrasi pekerjaan menjadi sulit</button>
+        <div id="group13" class="faq-dropdown">
+          <p>Cek kontrak, syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat, apakah mengatur tenaga administrasi/pemenuhan administrasi pekerjaan</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group14')">Kontraktor pelaksana lambat merespon terhadap permasalahan dan sulit diajak berdiskusi dalam penyelesaian pelaksanaan pekerjaan</button>
+        <div id="group14" class="faq-dropdown">
+          <p>Cek dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, rencana kerja dan syarat-syarat, apakah mengatur manajemen waktu respon dalam menyelesaikan pekerjaan</p>
+        </div>
+      </div>
+      <div class="faq-column">
+        <h2>Pengawasan</h2>
+        <button class="faq-button" onclick="toggleGroup('group15')">Pemenuhan administrasi pekerjaan (laporan, memo, peringatan) lambat</button>
+        <div id="group15" class="faq-dropdown">
+          <p>Cek dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, apakah sudah mencakup detail pelaksanaan monitoring dan evaluasi pekerjaan</p>
+          <p>Hasil pekerjaan mengikuti ketentuan pada kontrak, syarat-syarat umum kontrak, syarat-syarat khusus kontrak</p>
+        </div>
+
+        <button class="faq-button" onclick="toggleGroup('group16')">Kurang komunikasi antara PPK dengan tenaga teknis sehingga mempengaruhi waktu pelaksanaan pekerjaan</button>
+        <div id="group16" class="faq-dropdown">
+          <p>Cek dokumen kontrak, termasuk syarat-syarat umum kontrak, syarat-syarat khusus kontrak, apakah mengatur manajemen waktu respon dalam menyelesaikan pekerjaan</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      function toggleGroup(groupId) {
+        var element = document.getElementById(groupId);
+        if (element.style.display === "none" || element.style.display === "") {
+          element.style.display = "block";
+        } else {
+          element.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
