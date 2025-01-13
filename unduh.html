@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unduh Data Feature Service</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Unduh Data Feature Service</h1>
+    <button onclick="downloadData()">Unduh Data</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+      function downloadData() {
+        const featureServiceUrl = "https://tataruang.jakarta.go.id/server/rest/services/Hosted/survey123_5c003e2e2d8146938dd3a0be89e7f275_results/FeatureServer/0";
+        const queryUrl = featureServiceUrl + "/query?where=1%3D1&outFields=*&f=json";
+
+        // Fungsi untuk mendapatkan tanggal saat ini dalam format "DD-MM-YYYY"
+        function getFormattedDate() {
+          const date = new Date();
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const year = date.getFullYear();
+          return `${day}-${month}-${year}`;
+        }
+
+        function convertTimestampToDate(timestamp) {
+          if (!isNaN(timestamp)) {
+            const date = new Date(timestamp);
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+          }
+          return timestamp;
+        }
+
+        // Fetch metadata untuk mendapatkan field alias
+        fetch(featureServiceUrl + "?f=json")
+          .then((response) => response.json())
+          .then((metadata) => {
+            const fieldAliases = {};
+            const dateFields = [];
+
+            metadata.fields.forEach((field) => {
+              fieldAliases[field.name] = field.alias;
+              if (field.type === "esriFieldTypeDate") {
+                dateFields.push(field.name);
+              }
+            });
+
+            // Fetch data dari Feature Service
+            fetch(queryUrl)
+              .then((response) => response.json())
+              .then((data) => {
+                const features = data.features.map((feature) => {
+                  const attributes = {};
+                  for (const key in feature.attributes) {
+                    let value = feature.attributes[key];
+                    if (dateFields.includes(key)) {
+                      value = convertTimestampToDate(value);
+                    }
+                    const alias = fieldAliases[key] || key;
+                    attributes[alias] = value;
+                  }
+                  return attributes;
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(features);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+                const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+                const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+                const formattedDate = getFormattedDate();
+                const filename = `Daftar Hadir SAPS 2025 ${formattedDate}.xlsx`;
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              })
+              .catch((error) => {
+                console.error("Error fetching data: ", error);
+                alert("Gagal mengunduh data.");
+              });
+          })
+          .catch((error) => {
+            console.error("Error fetching metadata: ", error);
+            alert("Gagal mengambil metadata.");
+          });
+      }
+    </script>
+  </body>
+</html>
