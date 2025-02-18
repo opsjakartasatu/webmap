@@ -17,37 +17,47 @@
     </style>
   </head>
   <body>
-    <h1>Unduh Data Daftar Hadir SAPS 2025</h1>
+    <h1>Unduh Data Feature Service</h1>
     <button onclick="downloadData()">Unduh Data</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
       function downloadData() {
-        const featureServiceUrl = "https://tataruang.jakarta.go.id/server/rest/services/Absensi_APS_BGP/FeatureServer/0";
+        const featureServiceUrl = "https://tataruang.jakarta.go.id/server/rest/services/Absensi_APS_BGP/FeatureServer/0"; // Masukkan URL Feature Service
         const queryUrl = featureServiceUrl + "/query?where=1%3D1&outFields=*&f=json";
 
-        // Fungsi untuk mendapatkan tanggal saat ini dalam format "DD-MM-YYYY"
+        // Urutan kolom yang diinginkan dalam output Excel
+        const orderedColumns = [
+          "created_user",
+          "GlobalID",
+          "Longitude:",
+          "display_tgl",
+          "last_edited_user",
+          "Subkelompok:K",
+          "Nama:",
+          "Hari, Tanggal:",
+          "Waktu:",
+          "last_edited_date",
+          "created_date",
+          "OBJECTID",
+          "Latitude:",
+          "Status Absensi",
+        ];
+
         function getFormattedDate() {
           const date = new Date();
-          const day = String(date.getDate()).padStart(2, "0");
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const year = date.getFullYear();
-          return `${day}-${month}-${year}`;
+          return date.toISOString().split("T")[0].split("-").reverse().join("-");
         }
 
         function convertTimestampToDate(timestamp) {
           if (!isNaN(timestamp)) {
             const date = new Date(timestamp);
-            const day = String(date.getDate()).padStart(2, "0");
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const year = date.getFullYear();
-            return `${day}-${month}-${year}`;
+            return date.toISOString().split("T")[0].split("-").reverse().join("-");
           }
           return timestamp;
         }
 
-        // Fetch metadata untuk mendapatkan field alias
         fetch(featureServiceUrl + "?f=json")
           .then((response) => response.json())
           .then((metadata) => {
@@ -61,7 +71,6 @@
               }
             });
 
-            // Fetch data dari Feature Service
             fetch(queryUrl)
               .then((response) => response.json())
               .then((data) => {
@@ -75,7 +84,14 @@
                     const alias = fieldAliases[key] || key;
                     attributes[alias] = value;
                   }
-                  return attributes;
+
+                  // Menyusun ulang data sesuai urutan kolom yang diinginkan
+                  const orderedAttributes = {};
+                  orderedColumns.forEach((col) => {
+                    orderedAttributes[col] = attributes[col] || "";
+                  });
+
+                  return orderedAttributes;
                 });
 
                 const worksheet = XLSX.utils.json_to_sheet(features);
@@ -84,8 +100,7 @@
                 const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
                 const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-                const formattedDate = getFormattedDate();
-                const filename = `Daftar Hadir SAPS 2025 ${formattedDate}.xlsx`;
+                const filename = `Daftar Hadir SAPS 2025 ${getFormattedDate()}.xlsx`;
 
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
