@@ -53,7 +53,12 @@
         function convertTimestampToDate(timestamp) {
           if (!isNaN(timestamp)) {
             const date = new Date(timestamp);
-            return date.toISOString().split("T")[0].split("-").reverse().join("-");
+            return new Intl.DateTimeFormat("id-ID", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              timeZone: "Asia/Jakarta", // WIB
+            }).format(date);
           }
           return timestamp;
         }
