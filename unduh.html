@@ -1,128 +1,169 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Unduh Data APS 2025</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin-top: 50px;
-      }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Unduh Data APS 2025</h1>
-    <button onclick="downloadData()">Unduh Data</button>
-
+    <title>Unduh Data Absensi APS 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  </head>
+  <body class="flex flex-col items-center justify-center h-screen bg-gray-100">
+    <h1 class="text-2xl font-bold mb-4">Unduh Data Absensi APS 2025</h1>
+
+    <button id="downloadBtn" class="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 transition duration-300" onclick="downloadData()">
+      <span id="buttonText">Unduh Data</span>
+    </button>
+
+    <div class="w-64 mt-4 bg-gray-300 rounded-full h-6 relative hidden" id="progressBarContainer">
+      <div id="progressBar" class="absolute top-0 left-0 bg-green-500 h-6 rounded-full w-0 transition-all duration-300"></div>
+      <span id="progressText" class="absolute w-full text-center font-semibold text-gray-800">0%</span>
+    </div>
+
+    <p id="statusText" class="mt-4 text-gray-600"></p>
 
     <script>
-      function downloadData() {
+      async function downloadData() {
         const featureServiceUrl = "https://tataruang.jakarta.go.id/server/rest/services/Absensi_APS_BGP/FeatureServer/0"; // Masukkan URL Feature Service
-        const queryUrl = featureServiceUrl + "/query?where=1%3D1&outFields=*&f=json";
+        const queryUrl = featureServiceUrl + "/query?where=1%3D1&outFields=*&f=json&returnCountOnly=true";
 
-        // Urutan kolom yang diinginkan dalam output Excel
-        const orderedColumns = [
-          "created_user",
-          "GlobalID",
-          "Longitude:",
-          "display_tgl",
-          "last_edited_user",
-          "Subkelompok:K",
-          "Nama:",
-          "Hari, Tanggal:",
-          "Waktu:",
-          "last_edited_date",
-          "created_date",
-          "OBJECTID",
-          "Latitude:",
-          "Status Absensi",
-        ];
+        const buttonText = document.getElementById("buttonText");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const statusText = document.getElementById("statusText");
+        const progressBarContainer = document.getElementById("progressBarContainer");
+        const progressBar = document.getElementById("progressBar");
+        const progressText = document.getElementById("progressText");
 
-        function getFormattedDate() {
-          const date = new Date();
-          return date.toISOString().split("T")[0].split("-").reverse().join("-");
-        }
+        buttonText.textContent = "Mengunduh...";
+        downloadBtn.disabled = true;
+        statusText.textContent = "Mengambil jumlah total data...";
+        progressBarContainer.classList.remove("hidden");
+        progressBar.style.width = "0%";
+        progressText.textContent = "0%";
 
-        function convertTimestampToDate(timestamp) {
-          if (!isNaN(timestamp)) {
-            const date = new Date(timestamp);
-            return new Intl.DateTimeFormat("id-ID", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              timeZone: "Asia/Jakarta", // WIB
-            }).format(date);
+        try {
+          // ** Ambil total jumlah data**
+          const totalCountResponse = await fetch(queryUrl);
+          const totalCountData = await totalCountResponse.json();
+          const totalCount = totalCountData.count;
+
+          if (!totalCount || totalCount === 0) {
+            throw new Error("Tidak ada data yang tersedia.");
           }
-          return timestamp;
-        }
 
-        fetch(featureServiceUrl + "?f=json")
-          .then((response) => response.json())
-          .then((metadata) => {
-            const fieldAliases = {};
-            const dateFields = [];
+          // ** Ambil metadata field untuk mendapatkan alias & tipe data**
+          const metadataResponse = await fetch(`${featureServiceUrl}?f=json`);
+          const metadata = await metadataResponse.json();
+          const fieldAliases = {};
+          const dateFields = [];
 
-            metadata.fields.forEach((field) => {
-              fieldAliases[field.name] = field.alias;
-              if (field.type === "esriFieldTypeDate") {
-                dateFields.push(field.name);
+          metadata.fields.forEach((field) => {
+            fieldAliases[field.name] = field.alias || field.name;
+            if (field.type === "esriFieldTypeDate") {
+              dateFields.push(field.name);
+            }
+          });
+
+          const pageSize = 2000;
+          let allFeatures = [];
+          let progress = 0;
+
+          statusText.textContent = `Mengunduh ${totalCount} data...`;
+
+          // ** Looping untuk mengambil data dalam batch 2000**
+          for (let offset = 0; offset < totalCount; offset += pageSize) {
+            const pagedQueryUrl = `${featureServiceUrl}/query?where=1%3D1&outFields=*&f=json&resultOffset=${offset}&resultRecordCount=${pageSize}`;
+
+            const response = await fetch(pagedQueryUrl);
+            const data = await response.json();
+
+            // ** Format Data (Gunakan Alias & Format Tanggal)**
+            const formattedData = data.features.map((feature) => {
+              const attributes = {};
+              for (const key in feature.attributes) {
+                let value = feature.attributes[key];
+
+                // Konversi timestamp ke tanggal yang bisa dibaca
+                if (dateFields.includes(key) && !isNaN(value)) {
+                  const date = new Date(value);
+                  value = date.toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  });
+                }
+
+                // Gunakan alias sebagai header
+                const alias = fieldAliases[key] || key;
+                attributes[alias] = value;
               }
+              return attributes;
             });
 
-            fetch(queryUrl)
-              .then((response) => response.json())
-              .then((data) => {
-                const features = data.features.map((feature) => {
-                  const attributes = {};
-                  for (const key in feature.attributes) {
-                    let value = feature.attributes[key];
-                    if (dateFields.includes(key)) {
-                      value = convertTimestampToDate(value);
-                    }
-                    const alias = fieldAliases[key] || key;
-                    attributes[alias] = value;
-                  }
+            allFeatures.push(...formattedData);
 
-                  // Menyusun ulang data sesuai urutan kolom yang diinginkan
-                  const orderedAttributes = {};
-                  orderedColumns.forEach((col) => {
-                    orderedAttributes[col] = attributes[col] || "";
-                  });
+            // ** Perbarui progress bar**
+            progress = Math.min(100, ((offset + pageSize) / totalCount) * 100);
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${Math.floor(progress)}%`;
+          }
 
-                  return orderedAttributes;
-                });
+          // ** Urutkan Kolom Sesuai yang Diharapkan**
+          const orderedColumns = [
+            "created_user",
+            "GlobalID",
+            "Longitude:",
+            "display_tgl",
+            "last_edited_user",
+            "Subkelompok:K",
+            "Nama:",
+            "Hari, Tanggal:",
+            "Waktu:",
+            "last_edited_date",
+            "created_date",
+            "OBJECTID",
+            "Latitude:",
+            "Status Absensi",
+          ];
 
-                const worksheet = XLSX.utils.json_to_sheet(features);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-                const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-                const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-
-                const filename = `Daftar Hadir SAPS 2025 ${getFormattedDate()}.xlsx`;
-
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              })
-              .catch((error) => {
-                console.error("Error fetching data: ", error);
-                alert("Gagal mengunduh data.");
-              });
-          })
-          .catch((error) => {
-            console.error("Error fetching metadata: ", error);
-            alert("Gagal mengambil metadata.");
+          allFeatures = allFeatures.map((row) => {
+            const orderedRow = {};
+            orderedColumns.forEach((col) => {
+              orderedRow[col] = row[col] || "";
+            });
+            return orderedRow;
           });
+
+          // ** Konversi ke Excel**
+          const worksheet = XLSX.utils.json_to_sheet(allFeatures);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+
+          const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+          const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+          const filename = `Daftar Hadir SAPS 2025 ${new Date().toISOString().split("T")[0]}.xlsx`;
+
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // ** Selesaikan progress bar**
+          progressBar.style.width = "100%";
+          progressText.textContent = "100%";
+          statusText.textContent = "Download berhasil!";
+          statusText.classList.add("text-green-600");
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          statusText.textContent = "Gagal mengunduh data.";
+          statusText.classList.add("text-red-600");
+        }
+
+        // **Reset tombol setelah selesai**
+        buttonText.textContent = "Unduh Data";
+        downloadBtn.disabled = false;
       }
     </script>
   </body>
