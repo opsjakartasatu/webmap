@@ -84,7 +84,11 @@
 
                 // Konversi timestamp ke tanggal yang bisa dibaca
                 if (dateFields.includes(key) && !isNaN(value)) {
-                  const date = new Date(value);
+                  const timestamp = Number(value);
+                  // Pastikan timestamp dalam milidetik
+                  const date = new Date(
+                    timestamp < 1e12 ? timestamp * 1000 : timestamp // Konversi dari detik ke milidetik jika perlu
+                  );
                   value = date.toLocaleDateString("id-ID", {
                     day: "2-digit",
                     month: "2-digit",
