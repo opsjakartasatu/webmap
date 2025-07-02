@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Copy Polygon</title>
+    <link rel="icon" type="image/png" href="C:/laragon/www/jkt1.png" />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.33/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.33/"></script>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      .copy-panel {
+        position: absolute;
+        top: 100px;
+        left: 15px;
+        z-index: none;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        font-family: sans-serif;
+      }
+      button {
+        margin-top: 6px;
+        padding: 6px 10px;
+        border: 1 px;
+        border-radius: 4px;
+        border-color: darkblue;
+        background: #0079c1;
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <div class="copy-panel">
+      <div>Dipilih: <span id="count">0</span> polygon</div>
+      <button id="copyBtn">Copy Polygon</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <script>
+      require(["esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/widgets/Editor", "esri/Graphic", "esri/layers/GraphicsLayer"], (Map, MapView, FeatureLayer, Editor, Graphic, GraphicsLayer) => {
+        const sourceLayer = new FeatureLayer({
+          url: "https://tataruang.jakarta.go.id/server/rest/services/Hosted/Test_Copy_Polygon/FeatureServer/0",
+        });
+
+        const targetLayer = new FeatureLayer({
+          url: "https://tataruang.jakarta.go.id/server/rest/services/Hosted/Test_Copy_Polygon/FeatureServer/1",
+        });
+
+        const highlightLayer = new GraphicsLayer();
+
+        const map = new Map({ basemap: "satellite", layers: [sourceLayer, targetLayer, highlightLayer] });
+
+        const view = new MapView({
+          map: map,
+          center: [106.827188, -6.175347],
+          zoom: 16,
+          container: "viewDiv",
+        });
+
+        let selectedFeatures = [];
+
+        function updateCount() {
+          document.getElementById("count").textContent = selectedFeatures.length;
+        }
+
+        function addHighlight(graphic) {
+          const highlightGraphic = graphic.clone();
+          highlightGraphic.symbol = {
+            type: "simple-fill",
+            color: [0, 255, 255, 0.3],
+            outline: {
+              color: [0, 255, 255],
+              width: 1,
+            },
+          };
+          highlightGraphic.attributes.__highlight_id__ = graphic.attributes[sourceLayer.objectIdField]; // identifikasi untuk toggle
+          highlightLayer.add(highlightGraphic);
+        }
+
+        view.on("click", async (event) => {
+          const response = await view.hitTest(event);
+          const result = response.results.find((r) => r.graphic.layer === sourceLayer);
+          if (result) {
+            const clickedGraphic = result.graphic;
+            const objectId = clickedGraphic.attributes[sourceLayer.objectIdField];
+
+            // Cek apakah sudah dipilih sebelumnya
+            const alreadyExists = selectedFeatures.some((g) => g.attributes[sourceLayer.objectIdField] === objectId);
+
+            if (!alreadyExists) {
+              selectedFeatures.push(clickedGraphic);
+              addHighlight(clickedGraphic); // Tampilkan warna saat dipilih
+              updateCount();
+            }
+          }
+        });
+
+        // Tombol salin semua polygon terpilih
+        document.getElementById("copyBtn").addEventListener("click", async () => {
+          if (selectedFeatures.length === 0) {
+            alert("Belum ada polygon yang dipilih.");
+            return;
+          }
+
+          const featuresToAdd = selectedFeatures.map((f) => {
+            return new Graphic({
+              geometry: f.geometry,
+              attributes: {
+                NAMA: f.attributes.NAMA || "Disalin",
+                CREATED_DATE: new Date().toISOString(),
+              },
+            });
+          });
+
+          try {
+            const result = await targetLayer.applyEdits({
+              addFeatures: featuresToAdd,
+            });
+
+            const allSuccess = result.addFeatureResults.every((r) => !r.error);
+            if (allSuccess) {
+              alert(`Berhasil menyalin ${featuresToAdd.length} polygon!`);
+              selectedFeatures = [];
+              highlightLayer.removeAll();
+              updateCount();
+            } else {
+              console.error(result);
+              alert("Sebagian fitur gagal disalin.");
+            }
+          } catch (error) {
+            console.error(error);
+            alert("Terjadi kesalahan saat menyalin.");
+          }
+        });
+
+        // Tombol reset pilihan
+        document.getElementById("resetBtn").addEventListener("click", () => {
+          selectedFeatures = [];
+          highlightLayer.removeAll();
+          updateCount();
+        });
+      });
+    </script>
+  </body>
+</html>
